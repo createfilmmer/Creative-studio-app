@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Studio: Γεννήτρια Σεναρίου & Storyboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .form-checkbox:checked, .form-radio:checked { background-color: #4f46e5; border-color: #4f46e5; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .small-loader { width: 24px; height: 24px; border-width: 2px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .idea-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .idea-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2), 0 4px 6px -2px rgba(79, 70, 229, 0.1); }
+        .idea-card input:checked + div { border-color: #6366f1; background-color: #3730a3; }
+        .image-preview-container { position: relative; width: 100%; padding-top: 56.25%; background-color: #374151; border-radius: 0.5rem; overflow: hidden; }
+        .image-preview { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+        }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; font-weight: 600; z-index: 100; transition: opacity 0.3s, transform 0.3s; }
+        .toast.success { background-color: #16a34a; }
+        .toast.error { background-color: #dc2626; }
+        .toast.hidden { opacity: 0; transform: translate(-50%, 20px); }
+        .storyboard-frame { min-height: 150px; }
+        .moodboard-thumbnail { position: relative; }
+        .moodboard-thumbnail .remove-btn { position: absolute; top: -5px; right: -5px; background-color: #dc2626; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; }
+        .moodboard-thumbnail:hover .remove-btn { opacity: 1; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .character-role { min-width: 12rem; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div id="toast-container"></div>
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-400">Creative Studio</h1>
+            <div class="flex items-center space-x-2">
+                <label class="text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition cursor-pointer">
+                    <span>Εισαγωγή Έργου</span>
+                    <input type="file" id="import-project-input" class="hidden" accept=".json">
+                </label>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div id="form-section" class="lg:col-span-2 bg-gray-800 p-6 rounded-2xl shadow-2xl shadow-indigo-900/50">
+                <div class="space-y-8">
+                    
+                    <!-- Product Info -->
+                    <div>
+                        <label for="productInfo" class="block text-lg font-semibold mb-2 text-indigo-300">1. Περιέγραψε το Προϊόν/Υπηρεσία σου</label>
+                        <textarea id="productInfo" rows="3" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg" placeholder="π.χ. Ένα νέο ενεργειακό ποτό..."></textarea>
+                    </div>
+
+                    <!-- Advanced Brief -->
+                    <details id="advanced-brief-details" class="bg-gray-700/50 rounded-lg p-4">
+                        <summary class="text-lg font-semibold text-indigo-300 cursor-pointer">2. Πληροφορίες Brief (Advanced)</summary>
+                        <div class="mt-4 space-y-4">
+                            <input type="text" id="usp" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Unique Selling Proposition (USP)">
+                            <input type="text" id="keyMessage" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Key Message">
+                            <input type="text" id="cta" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Call-to-Action (CTA)">
+                        </div>
+                    </details>
+                    
+                    <!-- Visual Reference -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-indigo-300">3. Οπτική Αναφορά (Moodboard)</h3>
+                        <div id="drop-zone" class="border-2 border-dashed border-gray-600 p-4 rounded-lg">
+                            <label for="fileUpload" class="block text-sm font-medium mb-2 text-gray-300 text-center">Ανέβασε Εικόνες & PDF (ή Drag & Drop)</label>
+                            <input type="file" id="fileUpload" accept="image/*,.pdf" class="hidden" multiple>
+                            <div class="text-center">
+                               <button id="file-upload-btn" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-1 px-4 rounded-lg">+ Επιλογή Αρχείων</button>
+                            </div>
+                            <div id="moodboard-container" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 mt-4 min-h-[50px]">
+                                <!-- Thumbnails will be injected here -->
+                            </div>
+                            <div class="text-center mt-4">
+                                <button id="analyze-moodboard-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg transition">🔬 Ανάλυση Moodboard</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tone / Style -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold text-indigo-300">4. Επίλεξε Ύφος / Tone</h3>
+                            <button id="clear-tone-btn" class="text-sm text-indigo-400 hover:text-white font-semibold transition">Καθαρισμός</button>
+                        </div>
+                        <div id="tone-options" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                        <input type="text" id="customTone" class="mt-2 w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Custom Ύφος...">
+                    </div>
+
+                    <!-- Target Audience -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold text-indigo-300">5. Επίλεξε Κοινό-Στόχο</h3>
+                            <button id="clear-audience-btn" class="text-sm text-indigo-400 hover:text-white font-semibold transition">Καθαρισμός</button>
+                        </div>
+                        <div id="audience-options" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                        <input type="text" id="customAudience" class="mt-2 w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Custom Κοινό...">
+                    </div>
+                    
+                    <!-- Duration -->
+                    <div>
+                        <label for="duration" class="block text-lg font-semibold mb-2 text-indigo-300">6. Διάρκεια Video (δευτερόλεπτα)</label>
+                        <input type="number" id="duration" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="π.χ. 30">
+                    </div>
+
+                    <!-- Speech Style -->
+                    <div>
+                      <div class="flex justify-between items-center mb-3 mt-6">
+                          <h3 class="text-lg font-semibold text-indigo-300">7. Τρόπος Ομιλίας / Voice‑Over</h3>
+                      </div>
+                      <div id="speech-style-options" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <label class="flex items-center space-x-2 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition">
+                              <input type="radio" name="speechStyle" value="dialogue" class="form-radio h-5 w-5 text-indigo-600 bg-gray-900 border-gray-500 focus:ring-indigo-500" checked>
+                              <span class="text-sm font-medium">Διάλογος Χαρακτήρων</span>
+                          </label>
+                          <label class="flex items-center space-x-2 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition">
+                              <input type="radio" name="speechStyle" value="voiceover" class="form-radio h-5 w-5 text-indigo-600 bg-gray-900 border-gray-500 focus:ring-indigo-500">
+                              <span class="text-sm font-medium">Voice Over Narration</span>
+                          </label>
+                          <label class="flex items-center space-x-2 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition">
+                              <input type="radio" name="speechStyle" value="mixed" class="form-radio h-5 w-5 text-indigo-600 bg-gray-900 border-gray-500 focus:ring-indigo-500">
+                              <span class="text-sm font-medium">Μικτό / Hybrid</span>
+                          </label>
+                      </div>
+                    </div>
+
+                    <!-- Characters -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold text-indigo-300">8. Χαρακτήρες</h3>
+                            <div class="flex space-x-2">
+                                <button id="suggest-characters-btn" class="text-sm bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-1 px-3 rounded-lg transition" disabled>✨ Πρότεινε</button>
+                                <button id="add-character-btn" class="text-sm bg-green-600 hover:bg-green-500 text-white font-semibold py-1 px-3 rounded-lg transition">+ Προσθήκη</button>
+                            </div>
+                        </div>
+                        <div id="characters-container" class="space-y-4"></div>
+                        <div class="text-right mt-4">
+                          <button id="export-project-btn-top"
+                                  class="text-xs sm:text-sm bg-purple-600 hover:bg-purple-500
+                                         text-white font-semibold py-2 px-4 rounded-lg transition">
+                            ⬇️ Εξαγωγή Έργου
+                          </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div id="side-panel" class="space-y-8">
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl shadow-indigo-900/50">
+                    <h3 class="text-lg font-semibold mb-4 text-indigo-300">Έτοιμα Πακέτα</h3>
+                    <div id="cta-bundles" class="flex flex-col space-y-3"></div>
+                </div>
+            </div>
+        </main>
+
+        <div id="action-button-container" class="mt-8 text-center">
+            <button id="generate-ideas-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-10 rounded-lg text-xl transition transform hover:scale-105 shadow-lg">✨ Δημιουργία 5 Ιδεών</button>
+        </div>
+        <div id="ideas-container" class="hidden mt-10"></div>
+        <div id="result-container" class="hidden mt-10"></div>
+    </div>
+    
+    <div id="progress-modal"
+         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+      <div class="w-11/12 max-w-md bg-gray-800 rounded-lg p-6 text-center">
+        <p id="progress-label" class="mb-4 font-semibold text-indigo-300"></p>
+        <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+          <div id="progress-bar" class="bg-indigo-500 h-4 w-0 transition-all duration-150"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    // --- DATA ---
+    const tones = [{id:'humorous',name:'Χιουμοριστικό'},{id:'emotional',name:'Συγκινητικό'},{id:'inspirational',name:'Εμπνευστικό'},{id:'explanatory',name:'Εξηγηματικό'},{id:'conversational',name:'Καθημερινό'},{id:'premium',name:'Premium/Κινηματογραφικό'}];
+    const audiences = [{id:'genz',name:'Gen Z(18-24)'},{id:'young_pros',name:'Νέοι Επαγγελματίες(25-40)'},{id:'parents',name:'Γονείς Μικρών Παιδιών'},{id:'smb',name:'Μικρές Επιχειρήσεις(SMB)'},{id:'seniors',name:'55+ Ενεργοί Συνταξιούχοι'},{id:'eco',name:'Eco-Conscious Καταναλωτές'}];
+    const ctaBundles = [{id:'tiktok-bundle',name:'🚀 TikTok Spot',tones:['humorous','conversational'],audiences:['genz']},{id:'linkedin-bundle',name:'💼 LinkedIn Explainer',tones:['explanatory','premium'],audiences:['young_pros','smb']},{id:'instagram-bundle',name:'📸 Instagram Story Ad',tones:['inspirational','premium'],audiences:['young_pros','eco']},{id:'youtube-bundle',name:'📺 YouTube Pre-roll',tones:['humorous','explanatory'],audiences:['genz','smb']},{id:'podcast-bundle',name:'🎙️ Podcast Ad Read',tones:['conversational','inspirational'],audiences:['young_pros','seniors']}];
+
+    // --- GLOBAL STATE ---
+    let generatedScriptData = null;
+    let uploadedImages = [];
+    let uploadedDocs = [];
+    let visualRefAnalysis = null;
+    let visualBibleGR = '';
+    let visualBibleEN = '';
+    let characterCount = 0;
+    let selectedIdea = null;
+    let charactersGR = [];
+    let charactersEN = [];
+    let detailedCharacters = [];
+    let characterGlossary = {};
+
+    // --- DOM Elements ---
+    const getEl = id => document.getElementById(id);
+
+    // --- Toast Notifications ---
+    function showToast(message, type = 'success', duration = 3000) {
+        const container = getEl('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('hidden');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    // --- UI RENDERING ---
+    function renderCheckboxes(container, items, groupName) { container.innerHTML = items.map(item => `<label for="${item.id}" class="flex items-center space-x-2 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition"><input type="checkbox" id="${item.id}" name="${groupName}" value="${item.name}" class="form-checkbox h-5 w-5 rounded text-indigo-600 bg-gray-900 border-gray-500 focus:ring-indigo-500"><span class="text-sm font-medium">${item.name}</span></label>`).join(''); }
+    function renderCtaBundles(container, items) { container.innerHTML = items.map(item => `<button id="${item.id}" class="w-full text-left p-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition font-semibold">${item.name}</button>`).join(''); }
+    
+    function addCharacter(name = '', role = '', appearance_gr = '', appearance_en = '') {
+        characterCount++;
+        const div = document.createElement('div');
+        div.className = 'bg-gray-700/50 p-3 rounded-lg';
+        div.id = `character-block-${characterCount}`;
+        div.dataset.appearanceEn = appearance_en;
+        div.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <input type="text" class="character-name w-1/3 p-1 bg-transparent font-semibold text-indigo-300 placeholder-indigo-400/50" placeholder="Όνομα Χαρακτήρα" value="${name}">
+                <input type="text" class="character-role w-2/3 p-1 bg-transparent text-gray-300 placeholder-gray-400/50 text-sm" placeholder="Ρόλος" value="${role}">
+                <button class="remove-character-btn text-xs bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-2 rounded-full transition" data-id="${characterCount}">X</button>
+            </div>
+            <textarea class="character-desc w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-sm" rows="6" maxlength="350" placeholder="Αναλυτική περιγραφή εμφάνισης (έως 350 χαρ.)...">${appearance_gr}</textarea>
+        `;
+        getEl('characters-container').appendChild(div);
+        div.querySelector('.remove-character-btn').addEventListener('click', () => div.remove());
+    }
+
+    // --- STATE & FORM HANDLING ---
+    function getAppState() {
+        const characters = [];
+        document.querySelectorAll('#characters-container > div').forEach(div => {
+            characters.push({
+                name: div.querySelector('.character-name').value,
+                role: div.querySelector('.character-role').value,
+                description: div.querySelector('.character-desc').value,
+                appearance_en: div.dataset.appearanceEn || ''
+            });
+        });
+        return {
+            formInputs: {
+                productInfo: getEl('productInfo').value, usp: getEl('usp').value, keyMessage: getEl('keyMessage').value, cta: getEl('cta').value,
+                characters: characters, tones: getSelectedValues('tone'), customTone: getEl('customTone').value,
+                audiences: getSelectedValues('audience'), customAudience: getEl('customAudience').value,
+                speechStyle: document.querySelector('input[name="speechStyle"]:checked')?.value || 'dialogue',
+                duration: getEl('duration').value
+            },
+            generatedContent: {
+                ideasHTML: getEl('ideas-container').innerHTML,
+                resultHTML: getEl('result-container').innerHTML,
+                isIdeasVisible: !getEl('ideas-container').classList.contains('hidden'),
+                isResultVisible: !getEl('result-container').classList.contains('hidden'),
+                scriptData: generatedScriptData,
+                visualAnalysis: visualRefAnalysis,
+                visualBible: visualBibleEN,
+                visualBibleGR: visualBibleGR,
+                charactersGR: charactersGR,
+                charactersEN: charactersEN,
+                detailedCharacters: detailedCharacters,
+                characterGlossary: characterGlossary
+            }
+        };
+    }
+
+    function setAppState(state) {
+        const form = state.formInputs || {};
+        getEl('productInfo').value = form.productInfo || '';
+        getEl('usp').value = form.usp || '';
+        getEl('keyMessage').value = form.keyMessage || '';
+        getEl('cta').value = form.cta || '';
+        getEl('characters-container').innerHTML = '';
+        (form.characters || []).forEach(char => addCharacter(char.name, char.role, char.description, char.appearance_en));
+        if (!form.characters || form.characters.length === 0) { addCharacter(); }
+        document.querySelectorAll('input[name="tone"]').forEach(cb => cb.checked = (form.tones || []).includes(cb.value));
+        getEl('customTone').value = form.customTone || '';
+        document.querySelectorAll('input[name="audience"]').forEach(cb => cb.checked = (form.audiences || []).includes(cb.value));
+        getEl('customAudience').value = form.customAudience || '';
+        getEl('duration').value = form.duration || '';
+        if (form.speechStyle) {
+            const radio = document.querySelector(`input[name="speechStyle"][value="${form.speechStyle}"]`);
+            if (radio) radio.checked = true;
+        }
+
+        const content = state.generatedContent || {};
+        getEl('ideas-container').innerHTML = content.ideasHTML || '';
+        getEl('result-container').innerHTML = content.resultHTML || '';
+        getEl('ideas-container').classList.toggle('hidden', !content.isIdeasVisible);
+        getEl('result-container').classList.toggle('hidden', !content.isResultVisible);
+        generatedScriptData = content.scriptData || null;
+        visualRefAnalysis = content.visualAnalysis || null;
+        visualBibleEN = content.visualBible || null;
+        visualBibleGR = content.visualBibleGR || null;
+        charactersGR = content.charactersGR || [];
+        charactersEN = content.charactersEN || [];
+        detailedCharacters = content.detailedCharacters || [];
+        characterGlossary = content.characterGlossary || {};
+
+        rebindEventListeners();
+    }
+
+    function exportProject() {
+        try {
+            const state = getAppState();
+            const stateString = JSON.stringify(state, null, 2);
+            const blob = new Blob([stateString], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ad-project.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Το έργο εξήχθη με επιτυχία!');
+        } catch (e) {
+            showToast('Σφάλμα: Η εξαγωγή απέτυχε.', 'error');
+            console.error(e);
+        }
+    }
+
+    function importProject(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const state = JSON.parse(e.target.result);
+                setAppState(state);
+                showToast('Το έργο εισήχθη με επιτυχία!');
+            } catch (err) {
+                showToast('Σφάλμα: Το αρχείο είναι κατεστραμμένο ή μη συμβατό.', 'error');
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    function syncCharactersStateFromDOM() {
+        const characterDivs = document.querySelectorAll('#characters-container > div');
+        const currentCharacters = Array.from(characterDivs).map(div => ({
+            name: div.querySelector('.character-name').value,
+            appearance_gr: div.querySelector('.character-desc').value,
+            appearance_en: div.dataset.appearanceEn || ''
+        }));
+        
+        detailedCharacters = currentCharacters.map(c => ({ name: c.name, description: c.appearance_en }));
+        charactersGR = currentCharacters.map(c => `${c.name}: ${c.appearance_gr}`).filter(c => c.trim() !== ':');
+        charactersEN = currentCharacters.map(c => `${c.name}: ${c.appearance_en}`).filter(c => c.trim() !== ':');
+    }
+
+    function getSelectedValues(groupName) { return Array.from(document.querySelectorAll(`input[name="${groupName}"]:checked`)).map(el => el.value); }
+    function applyCheckboxPreset(groupName, presetIds) { document.querySelectorAll(`input[name="${groupName}"]`).forEach(cb => cb.checked = presetIds.includes(cb.id)); }
+    function clearSelections(groupName, customInput) { document.querySelectorAll(`input[name="${groupName}"]`).forEach(cb => cb.checked = false); customInput.value = ''; }
+    
+    function handleFileUpload(files) {
+        [...files].forEach(f => {
+            if (f.type.startsWith('image/')) uploadedImages.push(f);
+            else if (f.type === 'application/pdf') uploadedDocs.push(f);
+        });
+        renderMoodboardThumbnails();
+    }
+
+    function renderMoodboardThumbnails() {
+        const container = getEl('moodboard-container');
+        container.innerHTML = '';
+        uploadedImages.forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'moodboard-thumbnail';
+                div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-md"><button class="remove-btn" data-type="img" data-idx="${idx}">X</button>`;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+        uploadedDocs.forEach((file, idx) => {
+            const div = document.createElement('div');
+            div.className = 'moodboard-thumbnail flex flex-col items-center justify-center bg-gray-700 rounded-md p-2';
+            div.innerHTML = `<svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="text-xs mt-1 truncate w-full text-center">${file.name}</span><button class="remove-btn" data-type="doc" data-idx="${idx}">X</button>`;
+            container.appendChild(div);
+        });
+        rebindEventListeners();
+    }
+    
+    // --- API & SCRIPT GENERATION LOGIC ---
+    async function callGeminiAPI(prompt, files = [], responseSchema = null) {
+        const parts = [{ text: prompt }];
+        if (files && files.length > 0) {
+            for (const file of files) {
+                if (file.dataUrl) {
+                     parts.push({ inline_data:{mime_type:file.type, data:file.dataUrl.split(',')[1]} });
+                } else {
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                        reader.readAsDataURL(file);
+                    });
+                    parts.push({ inline_data: { mime_type: file.type, data: base64 } });
+                }
+            }
+        }
+
+        const payload = { contents: [{ role: "user", parts: parts }] };
+        if (responseSchema) {
+            payload.generationConfig = {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema
+            };
+        }
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        
+        const result = await response.json();
+        
+        let partWithText = null;
+        for (const p of result.candidates?.[0]?.content?.parts || []) {
+            if (p.text) { partWithText = p.text; break; }
+        }
+
+        if (!partWithText) {
+            console.warn('Raw Gemini response:', result);
+            throw new Error("Η απάντηση από την AI ήταν κενή ή σε μη αναμενόμενη μορφή.");
+        }
+
+        let text = partWithText.trim();
+        if (responseSchema) { text = text.replace(/^```(?:json)?|```$/g,'').trim(); }
+
+        try {
+            return responseSchema ? JSON.parse(text) : text;
+        } catch (e) {
+            console.error("JSON parsing error:", e, "Raw text:", text);
+            throw new Error("Failed to parse AI response as JSON.");
+        }
+    }
+    
+    async function callImagenAPI(prompt) {
+        const payload = { 
+            instances: [{ prompt: prompt }], 
+            parameters: { sampleCount: 1, aspectRatio: "16:9" } 
+        };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!response.ok) throw new Error(`Imagen API Error: ${response.status} ${response.statusText}`);
+        const result = await response.json();
+        if (result.predictions?.[0]?.bytesBase64Encoded) {
+            return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+        }
+        throw new Error("No image data in Imagen response.");
+    }
+
+    /* ---------- PROGRESS BAR ---------- */
+    function showProgress(label){
+      getEl('progress-label').textContent = label;
+      getEl('progress-bar').style.width = '0%';
+      getEl('progress-modal').classList.remove('hidden');
+    }
+    function updateProgress(pct){
+      getEl('progress-bar').style.width = pct + '%';
+    }
+    function hideProgress(){
+      getEl('progress-modal').classList.add('hidden');
+    }
+
+    function showLoading(container, message) {
+        container.innerHTML = `<div class="text-center p-8"><div class="loader mx-auto"></div><p class="mt-4 text-lg">${message}</p></div>`;
+        container.classList.remove('hidden');
+    }
+
+    async function handleAnalyzeMoodboard() {
+        const allFiles = [...uploadedImages, ...uploadedDocs];
+        if (!allFiles.length) { 
+            showToast('Παρακαλώ ανεβάστε αρχεία.', 'error'); 
+            return; 
+        }
+
+        showProgress('Ανάλυση Moodboard...');
+        let fake = 0, timer = setInterval(() => { fake = Math.min(fake + 5, 90); updateProgress(fake); }, 400);
+
+        try {
+            const analysisPrompt = "Analyze this collection of images and documents. Synthesize a single, cohesive description of the overall style, mood, color palette, and key recurring themes to create a unified moodboard analysis.";
+            visualRefAnalysis = await callGeminiAPI(analysisPrompt, allFiles);
+            clearInterval(timer); 
+            updateProgress(100); 
+            setTimeout(hideProgress, 200);
+            showToast('Η ανάλυση ολοκληρώθηκε!');
+            getEl('suggest-characters-btn').disabled = !(getEl('duration').value && visualRefAnalysis);
+        } catch (err) {
+            clearInterval(timer); 
+            hideProgress();
+            showToast('Η ανάλυση απέτυχε.', 'error');
+            console.error(err);
+        }
+    }
+
+    async function handleSuggestCharacters() {
+        const state = getAppState().formInputs;
+        if (!state.productInfo) {
+            showToast('Σφάλμα: Περιγράψτε πρώτα το προϊόν σας.', 'error');
+            return;
+        }
+        
+        showProgress('Δημιουργία χαρακτήρων...');
+        let pct = 0; const t = setInterval(() => { pct = Math.min(pct + 8, 90); updateProgress(pct); }, 350);
+
+        const prompt = `
+        Βάσει ΟΛΟΥ του brief, δημιούργησε 2-3 χαρακτήρες.
+        Λάβε υπόψη τη χρονική διάρκεια: ${state.duration || '30'} δευτ. Ζήτησε τόσους χαρακτήρες ώστε ο διάλογος να χωράει στη διάρκεια.
+        Για κάθε χαρακτήρα, απάντησε σε JSON format με τα παρακάτω πεδία:
+        - name: (στα Ελληνικά)
+        - role: (μικρή περίληψη ρόλου στα Ελληνικά)
+        - appearance_gr: (Αναλυτική περιγραφή στα Ελληνικά, max 350 χαρακτήρες. Συμπεριέλαβε: χαρακτηριστικά προσώπου, χρώμα ματιών, μαλλιά, σωματότυπο, ύψος σε cm, ρούχα, και ένα ιδιαίτερο αντικείμενο/αξεσουάρ.)
+        - appearance_en: (Ακριβής μετάφραση της παραπάνω περιγραφής στα Αγγλικά.)
+        `;
+
+        const schema = {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties:{
+              name:{type:"STRING"},
+              role:{type:"STRING"},
+              appearance_gr:{type:"STRING"},
+              appearance_en:{type:"STRING"}
+            },
+            required:["name","role","appearance_gr","appearance_en"]
+          }
+        };
+
+        try {
+            const response = await callGeminiAPI(prompt, null, schema);
+            getEl('characters-container').innerHTML = '';
+            
+            characterGlossary = {};
+            const trimTo350 = str => str.length > 350 ? str.slice(0, 347) + '…' : str;
+            response.forEach(c => {
+                characterGlossary[c.name] = trimTo350(c.appearance_en);
+                addCharacter(c.name, c.role, c.appearance_gr, c.appearance_en);
+            });
+            
+            clearInterval(t); 
+            updateProgress(100); 
+            setTimeout(hideProgress, 200);
+        } catch (e) {
+            clearInterval(t); 
+            hideProgress();
+            showToast('Η πρόταση χαρακτήρων απέτυχε.', 'error');
+            console.error(e);
+        }
+    }
+
+    async function handleGenerateIdeas() {
+        if (!getEl('productInfo').value.trim()) { showToast('Σφάλμα: Παρακαλώ, περιγράψτε το προϊόν σας.', 'error'); return; }
+        
+        syncCharactersStateFromDOM();
+
+        const ideasContainer = getEl('ideas-container');
+        showLoading(ideasContainer, 'Δημιουργία ιδεών...');
+        setTimeout(() => {
+            ideasContainer.scrollIntoView({behavior:'smooth', block:'start'});
+        }, 50);
+        
+        getEl('result-container').classList.add('hidden');
+
+        try {
+            const state = getAppState().formInputs;
+            let ideasPrompt = `Βασισμένο στα παρακάτω, δημιούργησε 5 μοναδικές ιδέες για διαφήμιση, στα Ελληνικά.
+            - Brief: ${JSON.stringify({product: state.productInfo, usp: state.usp, keyMessage: state.keyMessage, cta: state.cta})}
+            - Ύφος: ${[...state.tones, state.customTone].filter(Boolean).join(', ')}
+            - Κοινό: ${[...state.audiences, state.customAudience].filter(Boolean).join(', ')}
+            - Διάρκεια: ${state.duration || '30'}s
+            - Τρόπος Ομιλίας: ${state.speechStyle || 'διάλογος'}
+            - Χαρακτήρες: ${charactersGR.join(' | ')}
+            `;
+            
+            if (visualRefAnalysis) { ideasPrompt += `\n\n**Έμπνευση από Moodboard:** Χρησιμοποίησε την παρακάτω ανάλυση ως βασική έμπνευση: "${visualRefAnalysis}"`; }
+
+            const schema = {type:"OBJECT",properties:{ideas:{type:"ARRAY",items:{type:"OBJECT",properties:{title:{type:"STRING"},summary:{type:"STRING"}},required:["title","summary"]}}},required:["ideas"]};
+            const response = await callGeminiAPI(ideasPrompt, null, schema);
+            renderIdeas(response.ideas);
+
+        } catch (error) {
+            console.error("Error in idea generation pipeline:", error);
+            getEl('ideas-container').innerHTML = `<p class="text-red-400 text-center p-4">Σφάλμα κατά τη δημιουργία ιδεών: ${error.message}</p>`;
+        }
+    }
+
+    function renderIdeas(ideas) {
+        let ideasHTML = `<h2 class="text-3xl font-bold text-indigo-300 mb-6 text-center">Επίλεξε την Καλύτερη Ιδέα</h2>`;
+        if (visualRefAnalysis) { ideasHTML += `<div class="bg-gray-700 p-4 rounded-lg mb-6 text-sm italic"><strong class="not-italic">Ανάλυση Moodboard:</strong> ${visualRefAnalysis}</div>`; }
+        ideas.forEach((idea, index) => {
+            ideasHTML += `<label for="idea-${index}" class="block mb-4 idea-card"><input type="radio" name="selected-idea" id="idea-${index}" class="sr-only" value="${encodeURIComponent(JSON.stringify(idea))}"><div class="bg-gray-800 p-6 rounded-2xl border-2 border-transparent cursor-pointer"><h3 class="text-xl font-bold text-indigo-400 mb-2">${idea.title}</h3><p class="text-gray-300">${idea.summary}</p></div></label>`;
+        });
+        ideasHTML += `<div class="text-center mt-8"><button id="generate-scenes-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-10 rounded-lg text-xl">Δημιουργία Σκηνών</button></div>`;
+        getEl('ideas-container').innerHTML = ideasHTML;
+        rebindEventListeners();
+        
+        const box = document.querySelector('#ideas-container .bg-gray-700');
+        if(box) box.classList.add('hidden');
+    }
+
+    async function handleGenerateScenes() {
+        const selectedIdeaRadio = document.querySelector('input[name="selected-idea"]:checked');
+        if (!selectedIdeaRadio) { showToast('Σφάλμα: Παρακαλώ, επιλέξτε μια ιδέα.', 'error'); return; }
+        
+        syncCharactersStateFromDOM();
+
+        const resultContainer = getEl('result-container');
+        selectedIdea = JSON.parse(decodeURIComponent(selectedIdeaRadio.value));
+        showLoading(resultContainer, 'Γράφουμε το σενάριο...');
+        setTimeout(() => {
+            resultContainer.scrollIntoView({behavior:'smooth', block:'start'});
+        }, 50);
+
+        const state = getAppState().formInputs;
+        const prompt = `
+        Γράψε σενάrio **στα Ελληνικά** βασισμένο στο παρακάτω concept.
+        Για κάθε σκηνή θέλω: location_gr, action_gr, camera_gr, dialogue_gr, short_en (μία αγγλική σύνοψη).
+        Χρησιμοποίησε αυτούς ακριβώς τους χαρακτήρες (όνομα + ρόλος) – μην προσθέτεις νέους, μην αλλάζεις εμφάνιση: ${charactersGR.join(' | ')}
+        **Ιδέα:** "${selectedIdea.title}" (${selectedIdea.summary})
+        **Brief:** Προϊόν: ${state.productInfo}, USP: ${state.usp}, Key Message: ${state.keyMessage}, CTA: ${state.cta}, Ύφος: ${[...state.tones,state.customTone].filter(Boolean).join(', ')}, Κοινό: ${[...state.audiences,state.customAudience].filter(Boolean).join(', ')}, Διάρκεια: ${state.duration || '30'}s, Τρόπος Ομιλίας: ${state.speechStyle || 'διάλογος'}
+        `;
+
+        const schema = {
+          type:"OBJECT",
+          properties:{
+            scenes:{ type:"ARRAY",
+              items:{
+                type:"OBJECT",
+                properties:{
+                  scene_number:{type:"NUMBER"},
+                  title_gr:{type:"STRING"},
+                  location_gr:{type:"STRING"},
+                  action_gr:{type:"STRING"},
+                  camera_gr:{type:"STRING"},
+                  dialogue_gr:{type:"STRING"},
+                  short_en:{type:"STRING"}
+                },
+                required:["scene_number","title_gr","location_gr","action_gr","camera_gr"]
+              }
+            }
+          },
+          required:["scenes"]
+        };
+
+        try {
+            const scriptResult = await callGeminiAPI(prompt, null, schema);
+            generatedScriptData = scriptResult;
+            generatedScriptData.character_descriptions_en = detailedCharacters;
+            await generateVisualBible();
+            renderScript(generatedScriptData);
+        } catch (error) { getEl('result-container').innerHTML = `<p class="text-red-400 text-center p-4">Σφάλμα: ${error.message}</p>`; }
+    }
+    
+    async function generateVisualBible() {
+        if (!generatedScriptData) return;
+        const promptGR = `Γράψε έναν "Οπτικό Οδηγό" (Visual Bible) στα Ελληνικά με βάση τα παρακάτω δεδομένα σεναρίου. Ο οδηγός πρέπει να διασφαλίζει απόλυτη οπτική συνέπεια. Για κάθε χαρακτήρα, δώσε μια λεπτομερή, συγκεκριμένη περιγραφή των χαρακτηριστικών του προσώπου, των μαλλιών και των ρούχων του. Για το συνολικό σενάριο, όρισε μια συνεπή χρωματική παλέτα και στυλ φωτισμού.
+        **Δεδομένα Σεναρίου:**
+        - Αναλυτικοί χαρακτήρες (Αγγλικά): ${charactersEN.join(' | ')}
+        - Περιλήψεις Σκηνών: ${generatedScriptData.scenes.map(s => s.title_gr + ": " + s.action_gr).join('; ')}`;
+        
+        visualBibleGR = await callGeminiAPI(promptGR);
+        const trPrompt = `Translate the following Greek visual guide into concise professional English:\n\n${visualBibleGR}`;
+        visualBibleEN = await callGeminiAPI(trPrompt);
+    }
+    
+    function buildCharacterBlock(charObj){
+      if(!charObj || !charObj.description) return '';
+      const cleanDesc = charObj.description
+          .replace(/\s+/g,' ').replace(/^[\-\•]\s*/,'').trim().slice(0, 200);
+      return `CHARACTER: ${cleanDesc}.`;
+    }
+
+    function renderScript(data) {
+        let scriptHTML = `<h2 class="text-3xl font-bold text-indigo-300 mb-4">Το Σενάριό σου</h2>`;
+        if (visualBibleGR) {
+            scriptHTML += `
+            <div id="visual-bible-wrapper" class="hidden">
+               <div class="bg-indigo-900/50 p-4 rounded-lg mb-6"><h4 class="font-semibold text-indigo-300">Οπτικός Οδηγός (Visual Bible):</h4><p class="text-gray-300 italic text-sm">${visualBibleGR}</p></div>
+            </div>
+            <div class="text-right mb-6">
+               <button id="toggle-vb-btn" class="text-xs bg-gray-700 hover:bg-gray-600 text-indigo-300 font-semibold py-1 px-3 rounded-lg">
+                   👁 Προβολή Οπτικού Οδηγού
+               </button>
+            </div>`;
+        }
+        (data.scenes || []).forEach((scene, index) => {
+            scriptHTML += `
+            <div class="mb-6 pb-6 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-indigo-400 mb-2">Σκηνή ${scene.scene_number}: ${scene.title_gr}</h3>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div><strong class="text-gray-400 block mb-1">ΤΟΠΟΘΕΣΙΑ:</strong><p>${scene.location_gr||'N/A'}</p></div>
+                    <div><strong class="text-gray-400 block mb-1">ΔΡΑΣΗ:</strong><p>${scene.action_gr||'N/A'}</p></div>
+                    <div><strong class="text-gray-400 block mb-1">ΚΑΜΕΡΑ:</strong><p>${scene.camera_gr||'N/A'}</p></div>
+                    <div><strong class="text-gray-400 block mb-1">ΔΙΑΛΟΓΟΣ:</strong><p>${scene.dialogue_gr||'N/A'}</p></div>
+                </div>
+                <div class="storyboard-frame image-preview-container bg-gray-700/50 mt-4 hidden" id="storyboard-frame-${index}"></div>
+                <div class="image-prompt-container mt-4 hidden" id="image-prompt-container-${index}">
+                    <h4 class="font-semibold text-purple-300 mb-2">Prompt για Καρέ:</h4>
+                    <textarea class="w-full p-2 bg-gray-900 border border-gray-600 rounded-lg text-xs font-mono"></textarea>
+                    <button class="execute-image-generation-btn mt-2 text-xs bg-purple-600 hover:bg-purple-500 text-white font-semibold py-1 px-3 rounded-lg transition" data-scene-index="${index}">🖼️ Δημιουργία Εικόνας</button>
+                </div>
+                <div class="veo-prompt-container mt-4 hidden" id="veo-prompt-container-${index}">
+                    <h4 class="font-semibold text-teal-300 mb-2">Prompt για Veo:</h4>
+                    <textarea readonly class="w-full p-2 bg-gray-900 border border-gray-600 rounded-lg text-xs font-mono"></textarea>
+                    <button class="copy-veo-inline-btn mt-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-1 px-3 rounded-lg transition">Αντιγραφή Prompt</button>
+                </div>
+                <div class="text-right mt-4 flex justify-end space-x-2">
+                    <button class="generate-storyboard-prompt-btn bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition text-sm" data-scene-index="${index}">🖼️ Δημιουργία Prompt Καρέ</button>
+                    <button class="generate-veo-btn bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2 px-4 rounded-lg transition text-sm" data-scene-index="${index}">🎬 Δημιουργία Prompt Veo</button>
+                </div>
+            </div>`;
+        });
+        scriptHTML += `<div class="mt-8 text-center"><button id="export-project-btn" class="text-sm bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg transition">Εξαγωγή JSON</button></div>`;
+        getEl('result-container').innerHTML = scriptHTML;
+        rebindEventListeners();
+        setTimeout(()=>{
+          const toggle = getEl('toggle-vb-btn');
+          const box    = getEl('visual-bible-wrapper');
+          if(toggle) toggle.onclick = ()=> {
+            box.classList.toggle('hidden');
+            toggle.textContent = box.classList.contains('hidden') ? '👁 Προβολή Οπτικού Οδηγού' : '🙈 Απόκρυψη Οπτικού Οδηγού';
+          }
+        },0);
+    }
+
+    async function handleGenerateImagePrompt(sceneIndex) {
+        const promptContainer = getEl(`image-prompt-container-${sceneIndex}`);
+        promptContainer.classList.remove('hidden');
+        const textarea = promptContainer.querySelector('textarea');
+        textarea.value = 'Δημιουργία prompt...';
+        try {
+            const scene = generatedScriptData.scenes[sceneIndex];
+            const imagePromptGenerationPrompt = `Create one English prompt for a photorealistic 16:9 still frame.
+                CONTEXT (in order of importance)
+                1. IDEA: "${selectedIdea.title}" – ${selectedIdea.summary}
+                2. SCRIPT: Scene ${scene.scene_number} – ${scene.title_gr} • Scene Summary (EN): ${scene.short_en ?? ''}
+                3. VISUAL BIBLE: ${visualBibleEN}
+                4. CHARACTERS (visual reference): ${charactersEN.join('; ')}
+                Output ONLY the final prompt.`;
+            const optimizedImagePrompt = await callGeminiAPI(imagePromptGenerationPrompt);
+            textarea.value = optimizedImagePrompt;
+        } catch (error) {
+            textarea.value = `Σφάλμα δημιουργίας prompt: ${error.message}`;
+            showToast('Σφάλμα: Η δημιουργία prompt απέτυχε.', 'error');
+            console.error(error);
+        }
+    }
+    
+    async function analyzeGeneratedFrame(dataUrl){
+        const analysisPrompt = `Analyse this single film‑still for a creative director. In one crisp sentence describe: overall style, dominant colours, lighting mood, and the most striking objects or shapes in the frame.`;
+        return await callGeminiAPI(analysisPrompt, [{ dataUrl, type:'image/png' }]);
+    }
+
+    async function createVeoPrompt(sceneIndex, frameAnalysis){
+      const scene  = generatedScriptData.scenes[sceneIndex];
+      const castLine = 'CAST: ' + Object.keys(characterGlossary).slice(0,3).join(', ');
+      
+      const engineerPrompt = `
+${castLine}
+LOCATION: ${scene.location_gr}
+ACTION: ${scene.action_gr}
+CAMERA: << WRITE a single English camera line (movement + lens + fps) >>.
+MOOD: Use palette / mood words based on VISUAL_BIBLE & FRAME_ANALYSIS.
+AUDIO: << One witty one-liner for dialogue, inside quotes >>.
+CONSTRAINTS (strict):
+- MAX 10 lines total, no extra commentary.
+- Re-use colour & mood words from:
+  • VISUAL_BIBLE: ${visualBibleEN}
+  • FRAME_ANALYSIS: ${frameAnalysis}
+- Translate any Greek words to concise English.
+- End every line with a period (except AUDIO which ends with ").
+Return only the finished Veo prompt.
+`.trim();
+      const veoPrompt = await callGeminiAPI(engineerPrompt);
+      const box = getEl(`veo-prompt-container-${sceneIndex}`);
+      box.classList.remove('hidden');
+      box.querySelector('textarea').value = veoPrompt.trim();
+    }
+
+    async function handleExecuteImagePrompt(sceneIndex) {
+        const frameContainer = getEl(`storyboard-frame-${sceneIndex}`);
+        const promptContainer = getEl(`image-prompt-container-${sceneIndex}`);
+        const prompt = promptContainer.querySelector('textarea').value;
+        frameContainer.classList.remove('hidden');
+        frameContainer.innerHTML = `<div class="absolute inset-0 flex items-center justify-center"><div class="loader small-loader"></div></div>`;
+        getEl(`veo-prompt-container-${sceneIndex}`).classList.add('hidden');
+        try {
+            const imageUrl = await callImagenAPI(prompt);
+            frameContainer.innerHTML = `<img src="${imageUrl}" class="image-preview" alt="Storyboard frame for scene ${sceneIndex + 1}">`;
+            // ο χρήστης θα πατήσει το 🎬 κουμπί για Veo prompt
+        } catch (error) {
+            frameContainer.innerHTML = `<p class="text-red-400 text-xs p-2 text-center">Σφάλμα Δημιουργίας Εικόνας</p>`;
+            showToast('Σφάλμα: Η δημιουργία εικόνας απέτυχε.', 'error');
+            console.error(error);
+        }
+    }
+    
+    function copyToClipboard(text, button) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const originalText = button.textContent;
+            button.textContent = 'Αντιγράφηκε!';
+            setTimeout(() => { button.textContent = originalText; }, 2000);
+        } catch (err) {
+            showToast('Σφάλμα: Η αντιγραφή απέτυχε.', 'error');
+        }
+        document.body.removeChild(textArea);
+    }
+    
+    function rebindEventListeners() {
+        if(getEl('generate-scenes-btn')) {
+            getEl('generate-scenes-btn').addEventListener('click', handleGenerateScenes);
+        }
+        document.querySelectorAll('.generate-storyboard-prompt-btn').forEach(btn => btn.addEventListener('click', e => handleGenerateImagePrompt(e.target.dataset.sceneIndex)));
+        document.querySelectorAll('.execute-image-generation-btn').forEach(btn => btn.addEventListener('click', e => handleExecuteImagePrompt(e.target.dataset.sceneIndex)));
+        document.querySelectorAll('.generate-veo-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const idx = e.target.dataset.sceneIndex;
+                const img = getEl(`storyboard-frame-${idx}`).querySelector('img');
+                if (!img) {
+                    showToast('Σφάλμα: Πρέπει πρώτα να δημιουργήσετε το καρέ (εικόνα).', 'error');
+                    return;
+                }
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Ανανέωση...';
+                try {
+                    const frameAnalysis = await analyzeGeneratedFrame(img.src);
+                    await createVeoPrompt(idx, frameAnalysis);
+                    showToast('Το Veo prompt ανανεώθηκε!', 'success');
+                } catch (error) {
+                    showToast('Σφάλμα: Η ανανέωση του Veo prompt απέτυχε.', 'error');
+                    console.error(error);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            });
+        });
+        document.querySelectorAll('.copy-veo-inline-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const textarea = e.target.closest('.veo-prompt-container').querySelector('textarea');
+                copyToClipboard(textarea.value, e.target);
+            });
+        });
+        const exportBottom = getEl('export-project-btn');
+        if (exportBottom) exportBottom.addEventListener('click', exportProject);
+        const exportTop = getEl('export-project-btn-top');
+        if (exportTop) exportTop.addEventListener('click', exportProject);
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const type = e.currentTarget.dataset.type;
+                const idx = parseInt(e.currentTarget.dataset.idx, 10);
+                if (type === 'img') uploadedImages.splice(idx, 1);
+                else if (type === 'doc') uploadedDocs.splice(idx, 1);
+                renderMoodboardThumbnails();
+            });
+        });
+    }
+
+    // --- INITIALIZATION & EVENT LISTENERS ---
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCheckboxes(getEl('tone-options'), tones, 'tone');
+        renderCheckboxes(getEl('audience-options'), audiences, 'audience');
+        renderCtaBundles(getEl('cta-bundles'), ctaBundles);
+        addCharacter();
+        getEl('drop-zone').addEventListener('dragover', e => { e.preventDefault(); getEl('drop-zone').style.borderColor = '#4f46e5'; });
+        getEl('drop-zone').addEventListener('dragleave', e => { e.preventDefault(); getEl('drop-zone').style.borderColor = '#4b5563'; });
+        getEl('drop-zone').addEventListener('drop', e => { e.preventDefault(); getEl('drop-zone').style.borderColor = '#4b5563'; if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files); });
+        getEl('fileUpload').addEventListener('change', (e) => handleFileUpload(e.target.files));
+        getEl('clear-tone-btn').addEventListener('click', () => clearSelections('tone', getEl('customTone')));
+        getEl('clear-audience-btn').addEventListener('click', () => clearSelections('audience', getEl('customAudience')));
+        getEl('add-character-btn').addEventListener('click', () => addCharacter());
+        getEl('suggest-characters-btn').addEventListener('click', handleSuggestCharacters);
+        getEl('analyze-moodboard-btn').addEventListener('click', handleAnalyzeMoodboard);
+        getEl('file-upload-btn').addEventListener('click', () => getEl('fileUpload').click());
+        
+        getEl('duration').addEventListener('input', () => {
+           getEl('suggest-characters-btn').disabled = !(getEl('duration').value && visualRefAnalysis);
+        });
+
+        ctaBundles.forEach(bundle => { 
+            getEl(bundle.id).addEventListener('click', () => { 
+                clearSelections('tone', getEl('customTone'));
+                clearSelections('audience', getEl('customAudience'));
+                applyCheckboxPreset('tone', bundle.tones);
+                applyCheckboxPreset('audience', bundle.audiences);
+            }); 
+        });
+        getEl('generate-ideas-btn').addEventListener('click', handleGenerateIdeas);
+        getEl('import-project-input').addEventListener('change', importProject);
+        rebindEventListeners();
+    });
+    </script>
+</body>
+</html>
